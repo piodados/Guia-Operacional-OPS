@@ -24,7 +24,12 @@ function limpar(b) {
       }
     }
   }
-  return { off, sup };
+  // Ordem dos blocos: lista de índices sem repetição
+  const ord = [];
+  if (b && Array.isArray(b.ord)) {
+    for (const v of b.ord) if (Number.isInteger(v) && v >= 0 && v < 100 && !ord.includes(v) && ord.length < 100) ord.push(v);
+  }
+  return { off, sup, ord };
 }
 
 module.exports = async (req, res) => {
@@ -32,7 +37,7 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const c = await getCfg();
       res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
-      return res.status(200).json(c ? { exists: true, off: c.off || {}, sup: c.sup || {} } : { exists: false });
+      return res.status(200).json(c ? { exists: true, off: c.off || {}, sup: c.sup || {}, ord: c.ord || [] } : { exists: false });
     }
     res.setHeader('Cache-Control', 'no-store');
     if (req.method === 'POST') {

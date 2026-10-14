@@ -12,7 +12,7 @@ header img{height:22px}
 main{padding:18px 16px 28px;flex:1}h2{color:var(--ink);font-size:24px;line-height:1.2;margin:0 0 6px}.sub{color:var(--mu);margin:0 0 18px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:14px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;min-height:112px;display:flex;flex-direction:column;gap:10px}
-.num{background:var(--bl);color:#fff;border-radius:999px;min-width:36px;height:36px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;white-space:nowrap;align-self:flex-start}
+.mvs{display:inline-flex;gap:6px;margin-left:8px}.mv{width:34px;height:34px;border-radius:10px;border:1px solid var(--ln);background:var(--card);color:var(--ink);font-size:17px;line-height:1;cursor:pointer}.mv:disabled{opacity:.3;cursor:default}.num{background:var(--bl);color:#fff;border-radius:999px;min-width:36px;height:36px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;white-space:nowrap;align-self:flex-start}
 .card span.n{font-weight:700;line-height:1.25}.soon{font-size:12px;color:var(--mu);margin-top:auto}
 .item{display:block;width:100%;background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:14px;margin-bottom:10px;text-align:left;font:inherit;cursor:pointer;color:var(--ink)}.item b{display:block;font-size:17px}.item small{color:var(--mu)}
 .box{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:14px;margin-bottom:12px}.box h3{margin:0 0 6px;color:var(--ink);font-size:16px}.box p{margin:0}
@@ -110,6 +110,12 @@ const rp=SUP.resp&&SUP.resp.vazio?{}:(SUP.resp||RESP_PAD);const rok=rp.nome||rp.
 o+='<div class="box"><h3>Responsável pelos analistas</h3><p>'+(rok?'<b>'+h(rp.nome||'')+'</b>'+(rp.tel?' · '+tl(rp):''):(ADM?'Sem contato definido.':'[contato a definir]'))+'</p>'+(ADM?'<button class="btn l" style="margin:10px 0 0" onclick="editC(\'resp\')">'+(rok?'Editar responsável e contato':'[contato a definir]')+'</button>':'')+'</div>';
 return(ADM?'<div class="note i"><b>Modo administrador</b>Toque no botão de cada nível para escolher o contato.</div>':'')+o}
 let OFF={...CFG.off},SAVING=0,SAVEQ=Promise.resolve();
+let ORD=(CFG.ord||[]).slice();
+// Ordem completa dos blocos: só índices válidos, sem repetir; os que faltarem entram no fim.
+const ordem=()=>{const n=B.length,u=[],v=new Set();(ORD||[]).forEach(i=>{if(Number.isInteger(i)&&i>=0&&i<n&&!v.has(i)){v.add(i);u.push(i)}});for(let i=0;i<n;i++)if(!v.has(i))u.push(i);return u};
+// Blocos visíveis, na ordem configurada. A numeração é a posição nesta lista (sempre 1, 2, 3…).
+const vbl=()=>ordem().filter(i=>vis('b'+i));
+const num=i=>vbl().indexOf(i)+1;
 const vis=id=>!OFF[id];
 const vpages=bi=>vis('b'+bi)?B[bi].p.map((p,j)=>j).filter(j=>vis('b'+bi+'p'+j)):[];
 function labI(x){const t=x[0],c=s=>String(s).replace(/\s+/g,' ').trim();
@@ -124,21 +130,28 @@ if(t=='sup')return'Contatos dos supervisores e responsável';
 if(t=='copy')return'Texto padrão para copiar';return'Item'}
 const sw=(id,on)=>'<input type="checkbox" class="sw" data-id="'+id+'" '+(on?'checked':'')+' aria-label="Exibir">';
 function gestaoHtml(){
-const blocks=B.map((b,i)=>{const bid='b'+i;
+const ord=ordem();let vn=0;const blocks=ord.map((i,pos)=>{const b=B[i],bid='b'+i;const nb=OFF[bid]?'–':++vn;
 const pages=b.p.map((p,j)=>{const pid=bid+'p'+j;
 const rows=p.b.map((x,k)=>{const cid=pid+'c'+k;return'<div class="row'+(OFF[cid]?' off':'')+'"><span class="lab">'+h(labI(x))+'</span>'+sw(cid,!OFF[cid])+'</div>'}).join('');
 return'<details class="lv2'+(OFF[pid]?' off':'')+'"><summary><span class="ch">›</span><span class="lab"><b>'+h(p.t)+'</b><small>'+p.b.length+' iten'+(p.b.length==1?'':'s')+'</small></span><span class="tag">Oculto</span>'+sw(pid,!OFF[pid])+'</summary><div class="kids">'+rows+'</div></details>'}).join('');
-return'<details class="lv1'+(OFF[bid]?' off':'')+'"><summary><span class="ch">›</span><span class="lab"><b>'+(i+1)+'. '+h(b.n)+'</b><small>'+(b.p.length?b.p.length+' tela'+(b.p.length==1?'':'s'):'Sem telas ainda')+'</small></span><span class="tag">Oculto</span>'+sw(bid,!OFF[bid])+'</summary><div class="kids">'+(pages||'<p class="mu" style="padding:8px 12px">Ainda não há telas neste bloco.</p>')+'</div></details>'}).join('');
-return'<main><h2>Gestão do aplicativo</h2><p class="sub">Ative ou desative cada item. O que estiver desligado some do guia para todos os usuários.</p>'+''+'<p id="gs" class="mu" role="status"></p><div class="tree" id="tree" onchange="flag(event)">'+blocks+'</div><button class="btn l" onclick="resetAll()">Reativar todos os itens</button></main>'}
+return'<details class="lv1'+(OFF[bid]?' off':'')+'" data-b="'+i+'"><summary><span class="ch">›</span><span class="lab"><b><span class="bn">'+nb+'</span>. '+h(b.n)+'</b><small>'+(b.p.length?b.p.length+' tela'+(b.p.length==1?'':'s'):'Sem telas ainda')+'</small></span><span class="tag">Oculto</span><span class="mvs"><button type="button" class="mv" aria-label="Mover para cima" '+(pos==0?'disabled':'')+' onclick="mv(event,'+i+',-1)">↑</button><button type="button" class="mv" aria-label="Mover para baixo" '+(pos==ord.length-1?'disabled':'')+' onclick="mv(event,'+i+',1)">↓</button></span>'+sw(bid,!OFF[bid])+'</summary><div class="kids">'+(pages||'<p class="mu" style="padding:8px 12px">Ainda não há telas neste bloco.</p>')+'</div></details>'}).join('');
+return'<main><h2>Gestão do aplicativo</h2><p class="sub">Ative ou desative cada item. O que estiver desligado some do guia para todos os usuários. Use ↑ e ↓ para mudar a ordem dos blocos: a numeração segue sempre a ordem e só conta os blocos exibidos.</p>'+''+'<p id="gs" class="mu" role="status"></p><div class="tree" id="tree" onchange="flag(event)">'+blocks+'</div><button class="btn l" onclick="resetAll()">Reativar todos os itens</button></main>'}
 function gst(m){const e=document.getElementById('gs');if(e)e.textContent=m}
+function renumber(){let n=0;document.querySelectorAll('#tree details.lv1').forEach(d=>{const i=+d.dataset.b;const e=d.querySelector('.bn');if(e)e.textContent=OFF['b'+i]?'–':++n});
+const t=[...document.querySelectorAll('#tree details.lv1')];t.forEach((d,k)=>{const [u,w]=d.querySelectorAll('.mv');if(u)u.disabled=k==0;if(w)w.disabled=k==t.length-1})}
+function mv(e,i,dir){e.preventDefault();e.stopPropagation();const o=ordem(),p=o.indexOf(i),q=p+dir;if(q<0||q>=o.length)return;
+[o[p],o[q]]=[o[q],o[p]];ORD=o;
+const tree=document.getElementById('tree'),d=tree.querySelector('details.lv1[data-b="'+i+'"]');
+if(d){const nb=dir<0?d.previousElementSibling:d.nextElementSibling;if(nb){if(dir<0)tree.insertBefore(d,nb);else tree.insertBefore(nb,d)}}
+renumber();saveOff()}
 function flag(e){const i=e.target;if(!i.classList||!i.classList.contains('sw'))return;
 const id=i.dataset.id;if(i.checked)delete OFF[id];else OFF[id]=true;
-const el=i.closest('details,.row');if(el)el.classList.toggle('off',!i.checked);saveOff()}
+const el=i.closest('details,.row');if(el)el.classList.toggle('off',!i.checked);if(/^b\d+$/.test(id))renumber();saveOff()}
 let TOK=null;
 async function api(path,opt){const r=await fetch(path,opt);let j=null;try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&j.erro)||('Erro '+r.status));return j}
-async function saveCfg(){gst('Salvando…');try{await api('/api/config',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOK},body:JSON.stringify({off:OFF,sup:SUP})});gst('Salvo ✓')}catch(e){gst('Não foi possível salvar: '+e.message);throw e}}
+async function saveCfg(){gst('Salvando…');try{await api('/api/config',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOK},body:JSON.stringify({off:OFF,sup:SUP,ord:ordem()})});gst('Salvo ✓')}catch(e){gst('Não foi possível salvar: '+e.message);throw e}}
 function saveOff(){SAVEQ=SAVEQ.then(()=>saveCfg()).catch(()=>{})}
-function syncTree(){document.querySelectorAll('#tree input.sw').forEach(i=>{const on=!OFF[i.dataset.id];i.checked=on;const el=i.closest('details,.row');if(el)el.classList.toggle('off',!on)})}
+function syncTree(){document.querySelectorAll('#tree input.sw').forEach(i=>{const on=!OFF[i.dataset.id];i.checked=on;const el=i.closest('details,.row');if(el)el.classList.toggle('off',!on)});renumber()}
 function resetAll(){const d=ov('<h3>Reativar todos os itens?</h3><p>Tudo voltará a aparecer para os usuários.</p><button class="btn" id="ok">Reativar todos</button><button class="btn l" id="cn">Cancelar</button>');d.querySelector('#cn').onclick=()=>d.remove();d.querySelector('#ok').onclick=()=>{OFF={};d.remove();syncTree();saveOff()}}
 function ov(x){const d=document.createElement('div');d.className='zm2';d.innerHTML='<div class="mb">'+x+'</div>';d.onclick=e=>{if(e.target==d)d.remove()};document.body.appendChild(d);return d}
 function editC(k){
@@ -196,7 +209,7 @@ if(acao=='aprovar')return run();
 const d=ov('<h3>'+(acao=='remover'?'Remover o acesso?':'Recusar o cadastro?')+'</h3><p>'+h(login)+'</p><button class="btn" id="ok">Confirmar</button><button class="btn l" id="cn">Cancelar</button>');
 d.querySelector('#cn').onclick=()=>d.remove();d.querySelector('#ok').onclick=()=>{d.remove();run()}}
 function admOut(){ADM=false;TOK=null;ROLE=null;NOME='';USERS=[];render()}
-async function loadCfg(){try{const j=await api('/api/config');if(j&&j.exists){OFF=j.off||{};SUP=j.sup||{}}}catch(e){}}
+async function loadCfg(){try{const j=await api('/api/config');if(j&&j.exists){OFF=j.off||{};SUP=j.sup||{};ORD=Array.isArray(j.ord)?j.ord:[]}}catch(e){}}
 const livre=()=>v.s!='splash'&&!document.querySelector('.zm2,.zm');
 async function initCaps(){await loadCfg();if(livre()&&!ADM)render();
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState=='visible'&&!ADM){await loadCfg();if(livre())render()}})}
@@ -212,13 +225,13 @@ if(v.s=='block'&&!vis('b'+v.b))v={s:'home'};
 if(v.s=='page'&&!vis('b'+v.b))v={s:'home'};
 if(v.s=='page'&&!vis('b'+v.b+'p'+v.p))v={s:'block',b:v.b};
 if(v.s=='splash')o='<div class="splash" role="button" tabindex="0" aria-label="Toque para entrar no guia" onclick="enter()" onkeydown="if(event.key==\'Enter\'||event.key==\' \')enter()"><div class="mar"><img class="zg" src="'+LW+'" alt="Zig"></div><h1>Guia de Operação Zig</h1><p>Zig | Manual rápido para operação de eventos</p><span class="tap">Toque na tela para começar</span></div>';
-else if(v.s=='home'){const vb=B.map((b,i)=>i).filter(i=>vis('b'+i));
-o='<main><h2>Como utilizar este guia</h2><p class="sub">Este material está dividido em '+vb.length+' bloco'+(vb.length==1?'':'s')+'. Consulte diretamente o bloco que precisar durante o evento.</p><div class="grid">'+vb.map(i=>'<button class="card" onclick="go({s:\'block\',b:'+i+'})"><span class="num">'+(i+1)+'</span><span class="n">'+h(B[i].n)+'</span>'+(vpages(i).length?'':'<span class="soon">Em breve</span>')+'</button>').join('')+'</div><div style="margin-top:18px">'+(ADM?'<div class="note i"><b>Modo administrador ativo'+(NOME?' · '+h(NOME):'')+'</b>Use a gestão para escolher o que aparece e, em Pedir Ajuda › Níveis de suporte, para editar os contatos.</div><button class="btn" onclick="go({s:\'gestao\'})">Gestão do aplicativo</button>'+(ROLE=='master'?'<button class="btn l" onclick="go({s:\'usuarios\'})">Usuários e acessos'+(npend()?' ('+npend()+' pendente'+(npend()==1?'':'s')+')':'')+'</button>':'')+'<button class="btn l" onclick="admOut()">Sair do modo administrador</button>':'<button class="btn l" onclick="admLogin()">Acesso administrador</button>')+'</div></main><footer>Uma boa operação começa com um bom preparo. Consulte o guia sempre que precisar.</footer>'}
+else if(v.s=='home'){const vb=vbl();
+o='<main><h2>Como utilizar este guia</h2><p class="sub">Este material está dividido em '+vb.length+' bloco'+(vb.length==1?'':'s')+'. Consulte diretamente o bloco que precisar durante o evento.</p><div class="grid">'+vb.map((i,k)=>'<button class="card" onclick="go({s:\'block\',b:'+i+'})"><span class="num">'+(k+1)+'</span><span class="n">'+h(B[i].n)+'</span>'+(vpages(i).length?'':'<span class="soon">Em breve</span>')+'</button>').join('')+'</div><div style="margin-top:18px">'+(ADM?'<div class="note i"><b>Modo administrador ativo'+(NOME?' · '+h(NOME):'')+'</b>Use a gestão para escolher o que aparece e, em Pedir Ajuda › Níveis de suporte, para editar os contatos.</div><button class="btn" onclick="go({s:\'gestao\'})">Gestão do aplicativo</button>'+(ROLE=='master'?'<button class="btn l" onclick="go({s:\'usuarios\'})">Usuários e acessos'+(npend()?' ('+npend()+' pendente'+(npend()==1?'':'s')+')':'')+'</button>':'')+'<button class="btn l" onclick="admOut()">Sair do modo administrador</button>':'<button class="btn l" onclick="admLogin()">Acesso administrador</button>')+'</div></main><footer>Uma boa operação começa com um bom preparo. Consulte o guia sempre que precisar.</footer>'}
 else if(v.s=='gestao')o=hd('Gestão do aplicativo')+gestaoHtml();
 else if(v.s=='usuarios')o=hd('Usuários e acessos')+usersHtml();
-else if(v.s=='block'){const b=B[v.b],vp=vpages(v.b);o=hd('Bloco '+(v.b+1)+' · '+b.n)+'<main><h2>'+h(b.n)+'</h2><p class="sub">'+h(vp.length?(b.d||''):'Conteúdo em breve.')+'</p>'+vp.map(j=>{const p=b.p[j];return'<button class="item" onclick="go({s:\'page\',b:'+v.b+',p:'+j+'})"><b>'+h(p.t)+'</b><small>'+h(p.k)+'</small></button>'}).join('')+'</main>'}
+else if(v.s=='block'){const b=B[v.b],vp=vpages(v.b);o=hd('Bloco '+num(v.b)+' · '+b.n)+'<main><h2>'+h(b.n)+'</h2><p class="sub">'+h(vp.length?(b.d||''):'Conteúdo em breve.')+'</p>'+vp.map(j=>{const p=b.p[j];return'<button class="item" onclick="go({s:\'page\',b:'+v.b+',p:'+j+'})"><b>'+h(p.t)+'</b><small>'+h(p.k)+'</small></button>'}).join('')+'</main>'}
 else{const b=B[v.b],p=b.p[v.p],vp=vpages(v.b),pos=vp.indexOf(v.p),pr=vp[pos-1],nx=vp[pos+1],id='b'+v.b+'p'+v.p+'c';
-o=hd('Bloco '+(v.b+1)+' · '+b.n)+'<main><h2>'+h(p.t)+'</h2><p class="sub">'+h(p.k)+'</p>'+p.b.map((x,k)=>vis(id+k)?blk(x):'').join('')+(vp.length>1?'<div class="pn"><button class="btn l" '+(pr==null?'disabled':'')+' onclick="go({s:\'page\',b:'+v.b+',p:'+pr+'})">← Anterior</button><button class="btn" '+(nx==null?'disabled':'')+' onclick="go({s:\'page\',b:'+v.b+',p:'+nx+'})">Próximo →</button></div>':'')+'</main>'}
+o=hd('Bloco '+num(v.b)+' · '+b.n)+'<main><h2>'+h(p.t)+'</h2><p class="sub">'+h(p.k)+'</p>'+p.b.map((x,k)=>vis(id+k)?blk(x):'').join('')+(vp.length>1?'<div class="pn"><button class="btn l" '+(pr==null?'disabled':'')+' onclick="go({s:\'page\',b:'+v.b+',p:'+pr+'})">← Anterior</button><button class="btn" '+(nx==null?'disabled':'')+' onclick="go({s:\'page\',b:'+v.b+',p:'+nx+'})">Próximo →</button></div>':'')+'</main>'}
 $.innerHTML=o}
 function enter(){history.replaceState({s:'home'},'');v={s:'home'};render();scrollTo(0,0)}
 render();initCaps();
