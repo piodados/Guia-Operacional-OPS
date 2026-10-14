@@ -29,7 +29,18 @@ function limpar(b) {
   if (b && Array.isArray(b.ord)) {
     for (const v of b.ord) if (Number.isInteger(v) && v >= 0 && v < 100 && !ord.includes(v) && ord.length < 100) ord.push(v);
   }
-  return { off, sup, ord };
+  // Textos editados: id → lista de até 4 campos de texto
+  const tx = {};
+  if (b && b.tx && typeof b.tx === 'object') {
+    let n = 0;
+    for (const k of Object.keys(b.tx)) {
+      const v = b.tx[k];
+      if (/^b\d{1,2}(p\d{1,2}(c\d{1,3})?)?$/.test(k) && Array.isArray(v) && v.length >= 1 && v.length <= 4 && ++n <= 1500) {
+        tx[k] = v.map((t) => String(t == null ? '' : t).slice(0, 4000));
+      }
+    }
+  }
+  return { off, sup, ord, tx };
 }
 
 module.exports = async (req, res) => {
@@ -37,7 +48,7 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const c = await getCfg();
       res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
-      return res.status(200).json(c ? { exists: true, off: c.off || {}, sup: c.sup || {}, ord: c.ord || [] } : { exists: false });
+      return res.status(200).json(c ? { exists: true, off: c.off || {}, sup: c.sup || {}, ord: c.ord || [], tx: c.tx || {} } : { exists: false });
     }
     res.setHeader('Cache-Control', 'no-store');
     if (req.method === 'POST') {
