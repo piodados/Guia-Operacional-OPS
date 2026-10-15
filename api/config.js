@@ -1,7 +1,7 @@
 const { getCfg, setCfg, getUser } = require('../lib/store');
 const { verify } = require('../lib/auth');
 
-const NIVEIS = ['n1', 'n2', 'n3', 'n5', 'resp'];
+const NIVEIS = ['zig'];
 
 // Aceita só o formato esperado e descarta o resto.
 function limpar(b) {
