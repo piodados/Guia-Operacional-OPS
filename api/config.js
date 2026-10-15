@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const c = await getCfg();
-      res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=10');
       return res.status(200).json(c ? { exists: true, off: c.off || {}, sup: c.sup || {}, ord: c.ord || [], tx: c.tx || {} } : { exists: false });
     }
     res.setHeader('Cache-Control', 'no-store');

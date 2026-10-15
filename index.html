@@ -49,7 +49,7 @@ C('Cancelamento da nota fiscal — é possível?',['Sim. Regras:','Somente no ca
 {n:'Pedir Ajuda',d:'Precisa de ajuda? Siga o fluxo correto.',p:[
 {t:'Fluxo para pedir ajuda',k:'5 passos · informações obrigatórias',b:[S('Abra o chamado','Informe seus dados','Descreva a ocorrência','Envie evidências','Aguarde as orientações'),N('e','Casos urgentes','Ligue para o supervisor do seu nível.'),C('Informações obrigatórias',['Nome','Ponto de venda','Descrição da ocorrência','Foto/vídeo, quando necessário']),N('i','Dica','Quanto mais completo o chamado, mais rápido o suporte consegue agir. Use o texto padrão para não esquecer nenhuma informação.')]},
 {t:'Texto padrão para abertura de chamado',k:'Copie e cole no grupo principal',b:[['copy','🚨 ABERTURA DE CHAMADO\nNome:\nOperador:\nPonto de venda:\nNível:\nDescrição da ocorrência:\nO que foi verificado/tentado:\nEvidências:\nFoto:\nVídeo:\nImpacto na operação:\nAguardando orientação.'],P('Copie e cole este texto no grupo principal do evento.')]},
-{t:'Suporte técnico',k:'Nível 1',b:[['sup']]}]},
+{t:'Suporte técnico',k:'CCO ZIG',b:[['sup']]}]},
 {n:'Operação',d:'Tipos de operação.',p:[{t:'Tipos de operação',k:'Caixas móveis · bares móveis · ambulantes · queima de ficha',b:[
 C('Caixas móveis','Emissão de fichas individuais com impressão de QR Code para posterior queima, visando controle de estoque.'),
 C('Bares móveis','Venda de produtos cadastrados para cobrança nas formas de pagamento pré-configuradas, sem emissão de ficha. Baixa de estoque através da venda.'),
@@ -104,9 +104,9 @@ function cpCham(){const ok=()=>toast('Texto do chamado copiado. Ao abrir o grupo
 const fb=()=>{const a=document.createElement('textarea');a.value=CHAMADO;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){}a.remove()};
 try{navigator.clipboard.writeText(CHAMADO).then(ok,fb)}catch(e){fb()}}
 function supHtml(){
-const c=SUP.zig&&!SUP.zig.vazio&&(SUP.zig.nome||SUP.zig.tel)?SUP.zig:{nome:DEF_ZIG,tel:''};
-const o='<div class="box"><h3>Nível 1</h3><p><b>'+h(c.nome||DEF_ZIG)+'</b>'+(c.tel?' · '+tl(c):'')+'</p>'+(ADM?'<button class="btn l" style="margin:10px 0 0" onclick="editC(\'zig\')">Editar texto e contato</button>':'')+'</div>';
-return(ADM?'<div class="note i"><b>Modo administrador</b>Toque no botão para editar o texto do Nível 1 e, se quiser, incluir um telefone ou link de grupo do WhatsApp.</div>':'')+o}
+const c=SUP.zig&&!SUP.zig.vazio?SUP.zig:null;const ok=c&&(c.tel||c.nome);
+const o='<div class="box"><h3>'+h(DEF_ZIG)+'</h3>'+(ok?'<p><b>'+h(c.nome||'')+'</b>'+(c.tel?' · '+tl(c):'')+'</p>':(ADM?'':'<p>[contato a definir]</p>'))+(ADM?'<button class="btn l" style="margin:10px 0 0" onclick="editC(\'zig\')">'+(ok?'Alterar contato':'[contato a definir]')+'</button>':'')+'</div>';
+return(ADM?'<div class="note i"><b>Modo administrador</b>Toque no botão para escolher o contato do suporte. Ao tocar no número, o WhatsApp abre com o texto padrão do chamado.</div>':'')+o}
 let OFF={...CFG.off},SAVING=0,SAVEQ=Promise.resolve();
 let ORD=(CFG.ord||[]).slice();
 // ---- Textos editáveis: TX guarda só o que foi alterado (id → lista de campos); BO é o texto original ----
@@ -148,7 +148,7 @@ if(t=='p')return'Texto: '+c(x[1]).slice(0,44);
 if(t=='img')return'Imagem de exemplo da ficha';
 if(t=='l')return'Botão: '+c(x[1]);
 if(t=='planta')return'Planta: '+c(x[1]);
-if(t=='sup')return'Contato do suporte (Nível 1)';
+if(t=='sup')return'Contato do Suporte Técnico CCO ZIG';
 if(t=='copy')return'Texto padrão para copiar';return'Item'}
 const sw=(id,on)=>'<input type="checkbox" class="sw" data-id="'+id+'" '+(on?'checked':'')+' aria-label="Exibir">';
 function gestaoHtml(){
@@ -216,20 +216,19 @@ function syncTree(){document.querySelectorAll('#tree input.sw').forEach(i=>{cons
 function resetAll(){const d=ov('<h3>Reativar todos os itens?</h3><p>Tudo voltará a aparecer para os usuários.</p><button class="btn" id="ok">Reativar todos</button><button class="btn l" id="cn">Cancelar</button>');d.querySelector('#cn').onclick=()=>d.remove();d.querySelector('#ok').onclick=()=>{OFF={};d.remove();syncTree();saveOff()}}
 function ov(x){const d=document.createElement('div');d.className='zm2';d.innerHTML='<div class="mb">'+x+'</div>';d.onclick=e=>{if(e.target==d)d.remove()};document.body.appendChild(d);return d}
 function editC(k){
-const cur=SUP[k]&&!SUP[k].vazio?SUP[k]:{nome:DEF_ZIG,tel:''};const ti=(NIV.find(x=>x[0]==k)||[0,k])[1];
-const d=ov('<h3>'+h(ti)+'</h3><button class="btn" id="pk">Escolher da agenda do celular</button><label>Texto exibido<input id="nm" value="'+h(cur.nome||'')+'" autocomplete="off"></label><label>Telefone ou link do grupo do WhatsApp (opcional)<input id="tf" type="text" inputmode="text" autocapitalize="none" autocorrect="off" placeholder="21 99999-9999 ou https://chat.whatsapp.com/..." value="'+h(cur.tel||'')+'" autocomplete="off"></label><p id="ms" class="mu"></p><button class="btn" id="sv">Salvar</button>'+((SUP[k]&&!SUP[k].vazio)?'<button class="btn l" id="ex" style="color:#ff8a8a">Voltar ao texto padrão</button>':'')+'<button class="btn l" id="cn">Cancelar</button>');
+const cur=SUP[k]&&!SUP[k].vazio?SUP[k]:{};const ti=DEF_ZIG;
+const d=ov('<h3>'+h(ti)+'</h3><button class="btn" id="pk">Escolher da agenda do celular</button><label>Nome<input id="nm" value="'+h(cur.nome||'')+'" autocomplete="off"></label><label>Telefone ou link do grupo do WhatsApp<input id="tf" type="text" inputmode="text" autocapitalize="none" autocorrect="off" placeholder="21 99999-9999 ou https://chat.whatsapp.com/..." value="'+h(cur.tel||'')+'" autocomplete="off"></label><p id="ms" class="mu"></p><button class="btn" id="sv">Salvar</button>'+((SUP[k]&&!SUP[k].vazio)?'<button class="btn l" id="ex" style="color:#ff8a8a">Excluir contato</button>':'')+'<button class="btn l" id="cn">Cancelar</button>');
 const $q=s=>d.querySelector(s);
 $q('#cn').onclick=()=>d.remove();
 const ex=$q('#ex');if(ex)ex.onclick=async()=>{const m=$q('#ms');
 if(ex.dataset.ok!='1'){ex.dataset.ok='1';ex.textContent='Toque de novo para confirmar a exclusão';return}
 const nx={...SUP,[k]:{nome:'',tel:'',vazio:true}};
-const prev=SUP;SUP=nx;m.textContent='Excluindo…';try{await saveCfg();d.remove();render();toast('Texto padrão restaurado para todos os usuários.')}catch(e){SUP=prev;m.textContent='Não foi possível excluir: '+e.message}};
+const prev=SUP;SUP=nx;m.textContent='Excluindo…';try{await saveCfg();d.remove();render();toast('Contato excluído para todos os usuários.')}catch(e){SUP=prev;m.textContent='Não foi possível excluir: '+e.message}};
 $q('#pk').onclick=async()=>{const m=$q('#ms');
 if(!(navigator.contacts&&navigator.contacts.select)){m.textContent='Este aparelho ou navegador não permite abrir a agenda por aqui (comum no iPhone). Digite o nome e o telefone.';return}
 try{const r=await navigator.contacts.select(['name','tel'],{multiple:false});if(r&&r[0]){$q('#nm').value=(r[0].name||[])[0]||$q('#nm').value;$q('#tf').value=(r[0].tel||[])[0]||''}}catch(e){m.textContent='Não foi possível abrir a agenda. Digite o nome e o telefone.'}};
 $q('#sv').onclick=async()=>{const nome=$q('#nm').value.trim(),tel=$q('#tf').value.trim();const m=$q('#ms');
-if(!nome){m.textContent='Informe o texto que será exibido.';return}
-if(tel&&!grp(tel)&&tel.replace(/\D/g,'').length<10){m.textContent='O telefone precisa ter DDD, ou use o link de um grupo do WhatsApp (chat.whatsapp.com/...). Deixe em branco para mostrar só o texto.';return}
+if(!grp(tel)&&tel.replace(/\D/g,'').length<10){m.textContent='Informe um telefone com DDD ou o link de um grupo do WhatsApp (chat.whatsapp.com/...).';return}
 const nx={...SUP,[k]:{nome,tel}};
 const prev=SUP;SUP=nx;try{await saveCfg();d.remove();render();toast('Contato salvo para todos os usuários.')}catch(e){SUP=prev;m.textContent='Não foi possível salvar: '+e.message}}}
 let ROLE=null,NOME='',USERS=[];
@@ -271,7 +270,7 @@ if(acao=='aprovar')return run();
 const d=ov('<h3>'+(acao=='remover'?'Remover o acesso?':'Recusar o cadastro?')+'</h3><p>'+h(login)+'</p><button class="btn" id="ok">Confirmar</button><button class="btn l" id="cn">Cancelar</button>');
 d.querySelector('#cn').onclick=()=>d.remove();d.querySelector('#ok').onclick=()=>{d.remove();run()}}
 function admOut(){ADM=false;TOK=null;ROLE=null;NOME='';USERS=[];render()}
-async function loadCfg(){try{const j=await api('/api/config');if(j&&j.exists){OFF=j.off||{};SUP=j.sup&&j.sup.zig?{zig:j.sup.zig}:{};ORD=Array.isArray(j.ord)?j.ord:[];TX=j.tx&&typeof j.tx=='object'?j.tx:{};applyTx()}}catch(e){}}
+async function loadCfg(){try{const j=await api('/api/config',{cache:'no-store'});if(j&&j.exists){OFF=j.off||{};SUP=j.sup&&j.sup.zig?{zig:j.sup.zig}:{};ORD=Array.isArray(j.ord)?j.ord:[];TX=j.tx&&typeof j.tx=='object'?j.tx:{};applyTx()}}catch(e){}}
 const livre=()=>v.s!='splash'&&!document.querySelector('.zm2,.zm');
 async function initCaps(){await loadCfg();if(livre()&&!ADM)render();
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState=='visible'&&!ADM){await loadCfg();if(livre())render()}})}
